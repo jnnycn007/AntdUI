@@ -162,6 +162,12 @@ namespace AntdUI
         [Description("鼠标滚轮切换焦点页使能"), Category(nameof(CategoryAttribute.Behavior)), DefaultValue(true)]
         public bool EnablePageScrolling { get; set; } = true;
 
+        /// <summary>
+        /// 关闭页面后释放
+        /// </summary>
+        [Description("关闭页面后释放"), Category(nameof(CategoryAttribute.Behavior)), DefaultValue(false)]
+        public bool CloseDisposePage { get; set; }
+
         Color? scrollback;
         /// <summary>
         /// 滚动条颜色
@@ -445,6 +451,17 @@ namespace AntdUI
         public void SelectTab(TabPage tabPage) => SelectedTab = tabPage;
 
         public void SelectTab(int index) => SelectedIndex = index;
+
+        /// <summary>
+        /// 添加页面并设置激活
+        /// </summary>
+        public void AddTabSelect(TabPage page)
+        {
+            if (items == null) items = new TabCollection(this);
+            int index = _select = items.Count;
+            items.Add(page);
+            if (IsHandleCreated) ShowPage(index);
+        }
 
         #region 动画
 
@@ -760,24 +777,27 @@ namespace AntdUI
                     }
                     Invalidate();
                 }
-                int i = 0, x = e.X + scroll_x, y = e.Y + scroll_y;
-                foreach (var it in items)
+                if (_pageDown != null)
                 {
-                    if (it == _pageDown)
+                    int i = 0, x = e.X + scroll_x, y = e.Y + scroll_y;
+                    foreach (var it in items)
                     {
-                        if (it.Contains(x, y))
+                        if (it == _pageDown)
                         {
-                            if (style.MouseClick(it, i, x, y)) return;
-                            if (OnTabClick(it, i, style, e))
+                            if (_pageDown.Contains(x, y))
                             {
-                                SelectedIndex = i;
-                                return;
+                                if (style.MouseClick(_pageDown, i, x, y)) return;
+                                if (OnTabClick(_pageDown, i, style, e))
+                                {
+                                    SelectedIndex = i;
+                                    return;
+                                }
                             }
+                            else Invalidate();
+                            return;
                         }
-                        else Invalidate();
-                        return;
+                        i++;
                     }
-                    i++;
                 }
             }
         }
@@ -1683,8 +1703,24 @@ namespace AntdUI
             action_add = item =>
             {
                 item.PARENT = it;
-                if (it.InvokeRequired) it.Invoke(() => it.Controls.Add(item));
-                else it.Controls.Add(item);
+                if (it.SelectedIndex == 0 && Count == 1)
+                {
+                    if (it.InvokeRequired) it.Invoke(() =>
+                    {
+                        it.Controls.Add(item);
+                        item.Showed = true;
+                    });
+                    else
+                    {
+                        it.Controls.Add(item);
+                        item.Showed = true;
+                    }
+                }
+                else
+                {
+                    if (it.InvokeRequired) it.Invoke(() => it.Controls.Add(item));
+                    else it.Controls.Add(item);
+                }
             };
             action_del = (item, index) =>
             {

@@ -158,21 +158,9 @@ namespace AntdUI
 
         #region 方法
 
-        #region 滚动控件到视图
-
         public void ScrollControlIntoView(Control activeControl) => Panel.ScrollControlIntoView(activeControl);
 
         #endregion
-
-        #endregion
-
-        protected override void Dispose(bool disposing)
-        {
-            Panel.Dispose();
-            XScroll?.Dispose();
-            YScroll?.Dispose();
-            base.Dispose(disposing);
-        }
 
         #region 核心
 
@@ -246,7 +234,7 @@ namespace AntdUI
             }
         }
 
-        private void Scroll_ValueChanged(object? sender, IntEventArgs e) => IOnSizeChanged();
+        private void Scroll_ValueChanged(object? sender, IntEventArgs e) => PerformLayout();
 
         private StackPanelCore Panel;
         public XScrollBar? XScroll;
